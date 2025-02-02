@@ -1,25 +1,31 @@
+const dotenv = require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
+
+const PORT = process.env.PORT || 3003;
 
 const app = express();
 
 app.use(express.json());
 app.use(cors({
-    origin: ['https://nagacharan-registration-form.netlify.app', 'http://localhost:3000']
+    origin: ['https://nagacharan-registration-form.netlify.app', 'http://localhost:3000','https://node-js-render-3.onrender.com']
   }));
 
 
-const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "Naga@1975",
-    database: "Registration",
-});
+
+  const db = mysql.createConnection({
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+  });
 
 db.connect((err, res) => {
     if (err) {
         console.error("Error connecting to the database:", err);
+        process.exit(1);
     } else {
         console.log("Connected to the database.");
          
@@ -52,7 +58,18 @@ app.get('/signup', (req, res) => {
         });
 })
 
-app.post('/signup', (req, res) => {
+app.post('/signup', [
+    body('name').trim().notEmpty().withMessage('Name is required'),
+    body('email').trim().isEmail().withMessage('Invalid email'),
+    body('password').trim().isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
+],(req, res) => {
+    const errors = validationRequest(req);
+
+    if(!errors.isEmpty()){
+        return res.status(400).json({errors: errors.array()});
+    }
+    
+
     const { name, email, password } = req.body;
 
     // Validate required fields
@@ -155,5 +172,5 @@ app.post('/login', (req, res) => {
 
 
 app.listen(3003, () => {
-    console.log("Listening on port 3003");
+    console.log(`Listening on port ${PORT}`);
 });
